@@ -1,72 +1,60 @@
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+#include <obs-module.h>
+#include "Config.hpp"
+#include "plugin-macros.generated.h"
+
 #include <obs-frontend-api.h>
 
-#include <QObject>
-#include <QCryptographicHash>
-#include <QTime>
-#include <QSystemTrayIcon>
-#include <QMainWindow>
-#include <QInputDialog>
-#include <QMessageBox>
+static constexpr const char *CONFIG_SECTION = "obs-streamloots";
 
-#define PARAM_MONITORING "MonitoringType"
-#define PARAM_VOLUME "Volume"
-#define SECTION_NAME "Streamloots"
-
-#include "Config.hpp"
-
-#define QT_TO_UTF8(str) str.toUtf8().constData()
-
-Config::Config() : MonitoringType(OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT), Volume(100.0), SettingsLoaded(false)
+Config &Config::instance()
 {
-	SetDefaults();
+	static Config cfg;
+	return cfg;
 }
 
-void Config::Load()
+void Config::load()
 {
-	config_t *obsConfig = GetConfigStore();
+	config_t *global = obs_frontend_get_global_config();
+	if (!global)
+		return;
 
-	MonitoringType = config_get_int(obsConfig, SECTION_NAME, PARAM_MONITORING);
-	Volume = config_get_double(obsConfig, SECTION_NAME, PARAM_VOLUME);
+	config_set_default_uint(global, CONFIG_SECTION, "port", DEFAULT_PORT);
+	config_set_default_int(global, CONFIG_SECTION, "volume", DEFAULT_VOLUME);
+	config_set_default_int(global, CONFIG_SECTION, "monitoring_mode", 0);
+	config_set_default_bool(global, CONFIG_SECTION, "auto_start", true);
+
+	port_ = static_cast<uint16_t>(
+		config_get_uint(global, CONFIG_SECTION, "port"));
+	volume_ = static_cast<int>(
+		config_get_int(global, CONFIG_SECTION, "volume"));
+	monitoringMode_ = static_cast<MonitoringMode>(
+		config_get_int(global, CONFIG_SECTION, "monitoring_mode"));
+	autoStart_ = config_get_bool(global, CONFIG_SECTION, "auto_start");
+
+	blog(LOG_INFO, "Config loaded: port=%u volume=%d monitoring=%d autoStart=%d",
+	     port_, volume_, static_cast<int>(monitoringMode_), autoStart_);
 }
 
-void Config::Save()
+void Config::save() const
 {
-	config_t *obsConfig = GetConfigStore();
+	config_t *global = obs_frontend_get_global_config();
+	if (!global)
+		return;
 
-	config_set_int(obsConfig, SECTION_NAME, PARAM_MONITORING, MonitoringType);
-	config_set_double(obsConfig, SECTION_NAME, PARAM_MONITORING, Volume);
-	config_save(obsConfig);
-}
+	config_set_uint(global, CONFIG_SECTION, "port", port_);
+	config_set_int(global, CONFIG_SECTION, "volume", volume_);
+	config_set_int(global, CONFIG_SECTION, "monitoring_mode",
+		       static_cast<int>(monitoringMode_));
+	config_set_bool(global, CONFIG_SECTION, "auto_start", autoStart_);
 
-void Config::SetDefaults()
-{
-	config_t *obsConfig = GetConfigStore();
-	if (obsConfig) {
-		config_set_default_int(obsConfig, SECTION_NAME, PARAM_MONITORING,
-				       OBS_MONITORING_TYPE_MONITOR_AND_OUTPUT);
-		config_set_default_double(obsConfig, SECTION_NAME, PARAM_VOLUME, 100.0);
-	}
-}
-
-config_t *Config::GetConfigStore()
-{
-	return obs_frontend_get_profile_config();
-}
-
-void Config::MigrateFromGlobalSettings()
-{
-	config_t *source = obs_frontend_get_global_config();
-	config_t *destination = obs_frontend_get_profile_config();
-	if (config_has_user_value(source, SECTION_NAME, PARAM_MONITORING)) {
-		int value = config_get_int(source, SECTION_NAME, PARAM_MONITORING);
-		double volume = config_get_double(source, SECTION_NAME, PARAM_MONITORING);
-
-		config_set_int(destination, SECTION_NAME, PARAM_MONITORING, value);
-		config_remove_value(source, SECTION_NAME, PARAM_MONITORING);
-
-		config_set_double(destination, SECTION_NAME, PARAM_VOLUME, volume);
-		config_remove_value(source, SECTION_NAME, PARAM_VOLUME);
-	}
-
-	config_save(destination);
+	config_save(global);
+	blog(LOG_INFO, "Config saved");
 }

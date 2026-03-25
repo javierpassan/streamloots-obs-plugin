@@ -1,40 +1,47 @@
-#ifndef server_WSServer_hpp
-#define server_WSServer_hpp
-#include <string>
-#include <QString>
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+#pragma once
+
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
-#include <obs-module.h>
-#include <obs-frontend-api.h>
 
-using websocketpp::connection_hdl;
+#include <atomic>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <string>
 
-namespace server {
-typedef websocketpp::server<websocketpp::config::asio> server;
-typedef server::message_ptr message_ptr;
+using WsServer = websocketpp::server<websocketpp::config::asio>;
 
 class WSServer {
-
 public:
-	explicit WSServer();
-	virtual ~WSServer();
+	static WSServer &instance();
+
 	void start();
 	void stop();
+	bool isRunning() const { return running_.load(); }
 
 private:
-	const static int START_PORT;
-	const static int END_PORT;
-	server _server;
-	std::thread _serverThread;
-	int _serverPort;
-	std::map<QString, connection_hdl> _connectionList;
+	WSServer() = default;
+	~WSServer();
 
-	void onOpen(connection_hdl hdl);
-	void onClose(connection_hdl hdl);
-	void onMessage(connection_hdl hdl, message_ptr msg);
-	QString getRemoteEndpoint(connection_hdl hdl);
+	WSServer(const WSServer &) = delete;
+	WSServer &operator=(const WSServer &) = delete;
 
-	void serverRunner();
+	void run();
+	void onMessage(websocketpp::connection_hdl hdl,
+		       WsServer::message_ptr msg);
+	void onOpen(websocketpp::connection_hdl hdl);
+	void onClose(websocketpp::connection_hdl hdl);
+
+	WsServer server_;
+	std::thread serverThread_;
+	std::atomic<bool> running_{false};
+	std::mutex mutex_;
 };
-}
-#endif

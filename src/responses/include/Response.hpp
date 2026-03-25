@@ -1,19 +1,17 @@
-#ifndef responses_Response_hpp
-#define responses_Response_hpp
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+#pragma once
+
 #include <string>
 
-namespace responses {
 class Response {
 public:
-	const char *messageId;
-	virtual std::string toJson();
-
-	Response(std::string messageId);
-
-protected:
-	bool success;
-	obs_data_t *getBaseResponseData();
+	static std::string make(const std::string &messageId,
+				const std::string &requestType);
 };
-}
-
-#endif

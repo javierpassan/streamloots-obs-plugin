@@ -1,16 +1,16 @@
-#ifndef useCase_RotateCamera_hpp
-#define useCase_RotateCamera_hpp
-#include <obs-module.h>
-#include "../../responses/include/Response.hpp"
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-namespace useCase {
+#pragma once
+
+#include <obs-data.h>
+
 class RotateCamera {
 public:
-	static responses::Response invoke(obs_data_t *baseRequest);
-
-private:
-	static void source_rotate(const char *name, int seconds);
+	static bool execute(obs_data_t *metadata);
 };
-}
-
-#endif
