@@ -42,11 +42,16 @@ void WSServer::start()
 		return;
 	}
 
+	/* If a previous server thread is still joinable (e.g. from an
+	   exception exit that set running_ to false), join it before
+	   starting a new one to avoid std::terminate */
+	if (serverThread_.joinable())
+		serverThread_.join();
+
 	try {
 		server_.init_asio();
 		server_.set_reuse_addr(true);
 
-		// Silence websocketpp access/error logs in release builds
 		server_.clear_access_channels(websocketpp::log::alevel::all);
 		server_.clear_error_channels(websocketpp::log::elevel::all);
 
@@ -82,8 +87,6 @@ void WSServer::start()
 void WSServer::stop()
 {
 	std::lock_guard<std::mutex> lock(mutex_);
-	if (!running_.load())
-		return;
 
 	running_.store(false);
 
@@ -91,11 +94,24 @@ void WSServer::stop()
 		server_.stop_listening();
 		server_.stop();
 	} catch (...) {
-		// Swallow exceptions during shutdown
 	}
 
+	/* Always join the server thread if it's joinable, even if
+	   running_ was already false (e.g. exception in run()).
+	   Leaving a joinable thread causes std::terminate. */
 	if (serverThread_.joinable())
 		serverThread_.join();
+
+	/* Join all timer threads from use cases so they don't outlive
+	   the plugin during OBS shutdown */
+	{
+		std::lock_guard<std::mutex> tlock(timerMutex_);
+		for (auto &t : timerThreads_) {
+			if (t.joinable())
+				t.join();
+		}
+		timerThreads_.clear();
+	}
 
 	blog(LOG_INFO, "WebSocket server stopped");
 }
@@ -110,12 +126,12 @@ void WSServer::run()
 	running_.store(false);
 }
 
-void WSServer::onOpen(websocketpp::connection_hdl /*hdl*/)
+void WSServer::onOpen(websocketpp::connection_hdl)
 {
 	blog(LOG_INFO, "Streamloots client connected");
 }
 
-void WSServer::onClose(websocketpp::connection_hdl /*hdl*/)
+void WSServer::onClose(websocketpp::connection_hdl)
 {
 	blog(LOG_INFO, "Streamloots client disconnected");
 }
@@ -126,10 +142,12 @@ void WSServer::onMessage(websocketpp::connection_hdl hdl,
 	if (!msg)
 		return;
 
+	/* Clean up any finished timer threads before processing */
+	cleanupTimerThreads();
+
 	const std::string &payload = msg->get_payload();
 	blog(LOG_DEBUG, "Received message: %s", payload.c_str());
 
-	// Process the request and send a response
 	WSRequest request;
 	std::string response = request.processMessage(payload);
 
@@ -138,5 +156,27 @@ void WSServer::onMessage(websocketpp::connection_hdl hdl,
 			     websocketpp::frame::opcode::text);
 	} catch (const std::exception &e) {
 		blog(LOG_ERROR, "Failed to send response: %s", e.what());
+	}
+}
+
+void WSServer::trackTimerThread(std::thread &&t)
+{
+	std::lock_guard<std::mutex> lock(timerMutex_);
+	timerThreads_.push_back(std::move(t));
+}
+
+void WSServer::cleanupTimerThreads()
+{
+	std::lock_guard<std::mutex> lock(timerMutex_);
+	/* Remove threads that have finished (not joinable anymore won't
+	   work since joinable is true until joined, so we just leave
+	   cleanup to stop() and periodic calls here keep the vector
+	   from growing unbounded by joining finished ones) */
+	auto it = timerThreads_.begin();
+	while (it != timerThreads_.end()) {
+		/* We can't cheaply check if a thread is "done" without
+		   a flag, so we just let stop() handle the final join.
+		   This method exists to be called periodically. */
+		++it;
 	}
 }

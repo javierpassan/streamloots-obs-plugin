@@ -18,6 +18,7 @@
 #include "../plugin-macros.generated.h"
 #include "../requests/utils/metadata.hpp"
 #include "../Config.hpp"
+#include "../server/include/WSServer.h"
 #include "utils/getSceneItemInScene.hpp"
 
 #include <obs.h>
@@ -119,7 +120,7 @@ bool DisplayVideo::execute(obs_data_t *metadata)
 	     sourceName.c_str(), canvasWidth, canvasHeight, seconds);
 
 	std::string capturedName = sourceName;
-	std::thread([capturedName, seconds, sceneSrc, source]() {
+	std::thread timerThread([capturedName, seconds, sceneSrc, source]() {
 		std::this_thread::sleep_for(std::chrono::seconds(seconds));
 
 		struct RemoveCtx {
@@ -148,7 +149,8 @@ bool DisplayVideo::execute(obs_data_t *metadata)
 				delete c;
 			},
 			ctx, false);
-	}).detach();
+	});
 
+	WSServer::instance().trackTimerThread(std::move(timerThread));
 	return true;
 }

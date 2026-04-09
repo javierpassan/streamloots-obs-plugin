@@ -17,8 +17,8 @@
  * - v2 ran cleanup timers on worker threads and called OBS functions
  *   directly, which crashes on OBS 28+ due to thread affinity rules.
  *   Fixed by using obs_queue_task() to run cleanup on the UI thread.
- * - v2 didn't consistently release source references, causing leaks
- *   during long streaming sessions with many card redemptions.
+ * - Timer threads are now tracked by WSServer and joined during shutdown
+ *   so they don't outlive the plugin.
  */
 
 #include <obs-module.h>
@@ -26,6 +26,7 @@
 #include "../plugin-macros.generated.h"
 #include "../requests/utils/metadata.hpp"
 #include "../Config.hpp"
+#include "../server/include/WSServer.h"
 #include "utils/getSceneItemInScene.hpp"
 
 #include <obs.h>
@@ -80,7 +81,8 @@ bool DisplayImage::execute(obs_data_t *metadata)
 	/* CSS: transparent background for the browser page, plus force any
 	   video or image element to fill the viewport. Streamloots serves
 	   .webm files directly (not wrapped in a page), so the browser
-	   renders them as bare <video> elements that need explicit sizing. */
+	   renders them as bare <video> elements that need explicit sizing.
+	   Also hide the Chromium video player controls. */
 	obs_data_set_string(settings, "css",
 			    "body { background-color: rgba(0,0,0,0); "
 			    "margin: 0; overflow: hidden; }"
@@ -138,11 +140,12 @@ bool DisplayImage::execute(obs_data_t *metadata)
 	blog(LOG_INFO, "DisplayImage: showing '%s' at %dx%d for %d seconds",
 	     sourceName.c_str(), canvasWidth, canvasHeight, seconds);
 
-	/* Schedule removal: sleep on a detached thread, then queue the actual
+	/* Schedule removal: sleep on a tracked thread, then queue the actual
 	   scene manipulation back to the UI thread via obs_queue_task().
-	   OBS 28+ crashes if you touch scene items from a worker thread. */
+	   The thread is registered with WSServer so it gets joined during
+	   shutdown instead of running after the plugin unloads. */
 	std::string capturedName = sourceName;
-	std::thread([capturedName, seconds, sceneSrc, source]() {
+	std::thread timerThread([capturedName, seconds, sceneSrc, source]() {
 		std::this_thread::sleep_for(std::chrono::seconds(seconds));
 
 		struct RemoveCtx {
@@ -177,7 +180,8 @@ bool DisplayImage::execute(obs_data_t *metadata)
 				delete c;
 			},
 			ctx, false);
-	}).detach();
+	});
 
+	WSServer::instance().trackTimerThread(std::move(timerThread));
 	return true;
 }

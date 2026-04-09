@@ -20,9 +20,14 @@ public:
 	void load();
 	void save() const;
 
-	// Accessors
 	uint16_t port() const { return port_; }
-	void setPort(uint16_t p) { port_ = p; }
+	void setPort(uint16_t p)
+	{
+		/* Clamp to the range the Streamloots widget client scans */
+		if (p < MIN_PORT) p = MIN_PORT;
+		if (p > MAX_PORT) p = MAX_PORT;
+		port_ = p;
+	}
 
 	int volume() const { return volume_; }
 	void setVolume(int v) { volume_ = v; }
@@ -32,6 +37,10 @@ public:
 
 	bool autoStart() const { return autoStart_; }
 	void setAutoStart(bool a) { autoStart_ = a; }
+
+	/* Port range the Streamloots widget client tries to connect to */
+	static constexpr uint16_t MIN_PORT = 9006;
+	static constexpr uint16_t MAX_PORT = 9026;
 
 private:
 	Config() = default;

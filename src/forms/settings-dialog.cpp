@@ -5,8 +5,8 @@
  *
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
- * Settings dialog (Tools → Streamloots). Extended from v2 which only
- * had volume and monitoring controls — added port config, auto-start
+ * Settings dialog (Tools > Streamloots). Extended from v2 which only
+ * had volume and monitoring controls. Added port config, auto-start
  * toggle, and server start/stop buttons for easier troubleshooting.
  */
 
@@ -54,12 +54,13 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
 	auto *mainLayout = new QVBoxLayout(this);
 
-	// ── Server group ────────────────────────────────────────────────
 	auto *serverGroup = new QGroupBox("Server", this);
 	auto *serverForm = new QFormLayout(serverGroup);
 
 	portSpin_ = new QSpinBox(this);
-	portSpin_->setRange(1024, 65535);
+	/* Clamped to 9006-9026: the Streamloots widget client only
+	   scans this port range when trying to connect */
+	portSpin_->setRange(Config::MIN_PORT, Config::MAX_PORT);
 	serverForm->addRow("Port:", portSpin_);
 
 	autoStartCheck_ = new QCheckBox("Auto-start when OBS loads", this);
@@ -77,7 +78,6 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
 	mainLayout->addWidget(serverGroup);
 
-	// ── Audio group ─────────────────────────────────────────────────
 	auto *audioGroup = new QGroupBox("Audio", this);
 	auto *audioForm = new QFormLayout(audioGroup);
 
@@ -97,12 +97,10 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
 	mainLayout->addWidget(audioGroup);
 
-	// ── Buttons ─────────────────────────────────────────────────────
 	auto *buttons = new QDialogButtonBox(
 		QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
 	mainLayout->addWidget(buttons);
 
-	// ── Connections ─────────────────────────────────────────────────
 	connect(volumeSlider_, &QSlider::valueChanged, this,
 		[this](int val) {
 			volumeLabel_->setText(QString("%1%").arg(val));
@@ -130,7 +128,6 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 	connect(buttons, &QDialogButtonBox::rejected, this,
 		&QDialog::reject);
 
-	// ── Load current values ─────────────────────────────────────────
 	loadSettings();
 }
 

@@ -7,12 +7,14 @@
  *
  * RotateCamera — rotates a named source by N degrees, restores after timeout.
  * Same obs_queue_task() pattern as HideCamera for thread safety.
+ * Timer thread is tracked by WSServer for clean shutdown.
  */
 
 #include <obs-module.h>
 #include "include/RotateCamera.hpp"
 #include "../plugin-macros.generated.h"
 #include "../requests/utils/metadata.hpp"
+#include "../server/include/WSServer.h"
 #include "utils/getSceneItemInScene.hpp"
 
 #include <obs.h>
@@ -55,19 +57,16 @@ bool RotateCamera::execute(obs_data_t *metadata)
 		return false;
 	}
 
-	// Save original rotation
 	float originalRotation = obs_sceneitem_get_rot(item);
 
-	// Apply new rotation
 	obs_sceneitem_set_rot(item, originalRotation + degrees);
 	blog(LOG_INFO,
 	     "RotateCamera: rotated '%s' by %.1f degrees for %d seconds",
 	     sourceName.c_str(), degrees, seconds);
 
-	// Schedule restore
-	obs_source_addref(sceneSrc);
+	obs_source_get_ref(sceneSrc);
 
-	std::thread([sourceName, seconds, sceneSrc, originalRotation]() {
+	std::thread timerThread([sourceName, seconds, sceneSrc, originalRotation]() {
 		std::this_thread::sleep_for(
 			std::chrono::seconds(seconds));
 
@@ -98,7 +97,9 @@ bool RotateCamera::execute(obs_data_t *metadata)
 				delete c;
 			},
 			ctx, false);
-	}).detach();
+	});
+
+	WSServer::instance().trackTimerThread(std::move(timerThread));
 
 	obs_source_release(sceneSrc);
 	return true;
