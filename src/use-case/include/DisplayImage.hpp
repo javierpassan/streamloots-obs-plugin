@@ -1,17 +1,16 @@
-#ifndef useCase_DisplayImage_hpp
-#define useCase_DisplayImage_hpp
-#include <obs-module.h>
-#include "../../responses/include/Response.hpp"
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-namespace useCase {
+#pragma once
+
+#include <obs-data.h>
+
 class DisplayImage {
 public:
-	static responses::Response invoke(obs_data_t *baseRequest);
-
-private:
-	static void sceneitem_snooze_and_remove(obs_source_t *source, obs_sceneitem_t *scene_item, int seconds);
-	static void set_source_full_screen(obs_data_t *settings);
+	static bool execute(obs_data_t *metadata);
 };
-}
-
-#endif

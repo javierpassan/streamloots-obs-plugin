@@ -1,21 +1,10 @@
-#include "./include/RequestTypes.hpp"
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
 
-using requests::RequestType;
-using namespace std;
-
-map<QString, RequestType::Types> RequestType::requestTypeMap = {{"display-image", DisplayImageType},
-								{"rotate-camera", RotateCameraType},
-								{"press-key", PressKeyType},
-								{"hide-camera", HideCameraType},
-								{"display-video", DisplayVideo}};
-
-RequestType::Types RequestType::from(QString type)
-{
-	map<QString, RequestType::Types>::iterator it = requestTypeMap.find(type);
-
-	if (it == requestTypeMap.end()) {
-		return Unknown;
-	}
-
-	return it->second;
-}
+#include "include/RequestTypes.hpp"
+// Constants are defined in the header; this TU ensures linkage.

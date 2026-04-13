@@ -1,55 +1,70 @@
-#include <QString>
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+#include <obs-module.h>
+#include "include/WSRequest.hpp"
 #include "../plugin-macros.generated.h"
 #include "../use-case/include/UseCaseManager.hpp"
-#include "../requests/include/RequestBase.hpp"
-#include "../responses/include/ResponseError.hpp"
 #include "../responses/include/Response.hpp"
-#include "./include/WSRequest.hpp"
+#include "../responses/include/ResponseError.hpp"
 
-using namespace std;
-using namespace responses;
-using namespace requests;
-using namespace useCase;
-using server::WSRequest;
+#include <obs-data.h>
+#include <string>
 
-const string WSRequest::NO_VALIDATION_ERROR = "";
+/*
+ * Expected JSON format from Streamloots backend:
+ * {
+ *   "request-type": "display-image" | "display-video" | "hide-camera"
+ *                   | "press-key" | "rotate-camera",
+ *   "message-id": "<correlation-id>",
+ *   "metadata": { ... request-specific fields ... }
+ * }
+ */
 
-string WSRequest::processMessage(string message)
+std::string WSRequest::processMessage(const std::string &jsonPayload)
 {
-	string msgContainer(message);
-	const char *msg = msgContainer.c_str();
-	blog(LOG_INFO, "processing %s", msg);
-
-	obs_data_t *data = obs_data_create_from_json(msg);
-	string error = validateData(message, data);
-	if (error != NO_VALIDATION_ERROR) {
-		return error;
-	}
-
-	blog(LOG_INFO, "Data received %s", obs_data_get_json(data));
-	return UseCaseManager::processUseCase(data).toJson();
-}
-
-string WSRequest::validateData(string message, obs_data_t *data)
-{
+	obs_data_t *data = obs_data_create_from_json(jsonPayload.c_str());
 	if (!data) {
-		blog(LOG_ERROR, "invalid JSON payload received for %s", message.c_str());
-		ResponseError error("invalid JSON payload received for: " + message);
-		return error.toJson();
+		blog(LOG_WARNING, "Invalid JSON received");
+		return ResponseError::make("", "invalid-json",
+					   "Could not parse JSON payload");
 	}
 
-	if (!obs_data_has_user_value(data, "message-id")) {
-		blog(LOG_ERROR, "missing message-id");
-		ResponseError error("missing message-id");
-		return error.toJson();
+	const char *requestType = obs_data_get_string(data, "request-type");
+	const char *messageId = obs_data_get_string(data, "message-id");
+	obs_data_t *metadata = obs_data_get_obj(data, "metadata");
+
+	std::string response;
+
+	if (!requestType || strlen(requestType) == 0) {
+		response = ResponseError::make(
+			messageId ? messageId : "", "missing-request-type",
+			"'request-type' field is required");
+	} else {
+		blog(LOG_INFO, "Processing request: type=%s id=%s",
+		     requestType, messageId ? messageId : "(none)");
+
+		bool ok = UseCaseManager::instance().execute(
+			requestType, metadata);
+
+		if (ok) {
+			response = Response::make(
+				messageId ? messageId : "", requestType);
+		} else {
+			response = ResponseError::make(
+				messageId ? messageId : "", "execution-failed",
+				"Use case execution failed");
+		}
 	}
 
-	if (!obs_data_has_user_value(data, "request-type")) {
-		QString messageId = obs_data_get_string(data, "message-id");
-		blog(LOG_ERROR, "missing request-type on message: %s", messageId.toStdString().c_str());
-		ResponseError error("missing request-type", messageId.toStdString());
-		return error.toJson();
-	}
+	if (metadata)
+		obs_data_release(metadata);
+	obs_data_release(data);
 
-	return NO_VALIDATION_ERROR;
+	return response;
 }

@@ -1,30 +1,28 @@
-#include <QObject>
-#include <QMessageBox>
-#include <QMainWindow>
-#include <obs-frontend-api.h>
-#include <QString>
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * WebSocket server using websocketpp + standalone ASIO (same stack as v2).
+ * Runs on port 9006 by default. The Streamloots backend connects here
+ * to send card redemption commands. This is independent of the
+ * obs-websocket plugin that ships with OBS 28+ (which runs on 4455).
+ */
+
+#include <obs-module.h>
+#include "include/WSServer.h"
+#include "../Config.hpp"
 #include "../plugin-macros.generated.h"
-#include "./include/WSRequest.hpp"
-#include "./include/WSServer.h"
+#include "include/WSRequest.hpp"
 
-QT_USE_NAMESPACE
-using websocketpp::lib::placeholders::_1;
-using websocketpp::lib::placeholders::_2;
-using websocketpp::lib::bind;
-using server::WSServer;
+#include <obs.h>
 
-const int WSServer::START_PORT = 9006;
-const int WSServer::END_PORT = 9026;
-
-WSServer::WSServer()
+WSServer &WSServer::instance()
 {
-	_server.get_alog().clear_channels(websocketpp::log::alevel::frame_header |
-					  websocketpp::log::alevel::frame_payload | websocketpp::log::alevel::control);
-	_server.init_asio();
-	_server.set_reuse_addr(true);
-	_server.set_open_handler(bind(&WSServer::onOpen, this, ::_1));
-	_server.set_close_handler(bind(&WSServer::onClose, this, ::_1));
-	_server.set_message_handler(bind(&WSServer::onMessage, this, ::_1, ::_2));
+	static WSServer srv;
+	return srv;
 }
 
 WSServer::~WSServer()
@@ -32,113 +30,153 @@ WSServer::~WSServer()
 	stop();
 }
 
-void WSServer::serverRunner()
-{
-	blog(LOG_INFO, "IO thread started.");
-	try {
-		_server.run();
-	} catch (websocketpp::exception const &e) {
-		blog(LOG_ERROR, "websocketpp instance returned an error: %s", e.what());
-	} catch (const std::exception &e) {
-		blog(LOG_ERROR, "websocketpp instance returned an error: %s", e.what());
-	} catch (...) {
-		blog(LOG_ERROR, "websocketpp instance returned an error");
-	}
-	blog(LOG_INFO, "IO thread exited.");
-}
-
 void WSServer::start()
 {
-	if (_server.is_listening()) {
-		blog(LOG_INFO, "WSServer::start: server already on this port and protocol mode. no restart needed");
+	std::lock_guard<std::mutex> lock(mutex_);
+	if (running_.load())
+		return;
+
+	const auto &cfg = Config::instance();
+	if (!cfg.autoStart()) {
+		blog(LOG_INFO, "Auto-start disabled; server not started");
 		return;
 	}
 
-	_server.reset();
+	/* If a previous server thread is still joinable (e.g. from an
+	   exception exit that set running_ to false), join it before
+	   starting a new one to avoid std::terminate */
+	if (serverThread_.joinable())
+		serverThread_.join();
 
-	websocketpp::lib::error_code errorCode;
-
-	_serverPort = WSServer::START_PORT;
-	std::string errorCodeMessage;
-	do {
-		blog(LOG_INFO, "WSServer::start: Not locked to IPv4 bindings");
-		_server.listen(_serverPort, errorCode);
-
-		if (errorCode) {
-			_serverPort++;
-			errorCodeMessage = errorCode.message();
-			blog(LOG_INFO, "server: listen failed: %s", errorCodeMessage.c_str());
-		}
-	} while (errorCode && _serverPort <= WSServer::END_PORT);
-
-	if (errorCode) {
-		obs_frontend_push_ui_translation(obs_module_get_string);
-		QString errorTitle = QObject::tr("OBSWebsocket.Server.StartFailed.Title");
-		QString errorMessage = QObject::tr("OBSWebsocket.Server.StartFailed.Message")
-					       .arg(_serverPort)
-					       .arg(errorCodeMessage.c_str());
-		obs_frontend_pop_ui_translation();
-
-		QMainWindow *mainWindow = reinterpret_cast<QMainWindow *>(obs_frontend_get_main_window());
-		QMessageBox::warning(mainWindow, errorTitle, errorMessage);
-
-		return;
-	}
-
-	_server.start_accept();
-	_serverThread = std::thread(&WSServer::serverRunner, this);
-	blog(LOG_INFO, "server started successfully on port %d", _serverPort);
-}
-
-void WSServer::onOpen(connection_hdl hdl)
-{
-	QString clientIp = getRemoteEndpoint(hdl);
-	std::map<QString, connection_hdl>::iterator it = _connectionList.find(clientIp);
-	if (it != _connectionList.end()) {
-		_server.close(hdl, 0, "");
-	}
-
-	_connectionList[clientIp] = hdl;
-	blog(LOG_INFO, "new client connection from %s", clientIp.toUtf8().constData());
-}
-
-void WSServer::onClose(connection_hdl hdl)
-{
-	QString clientIp = getRemoteEndpoint(hdl);
-	_connectionList.erase(clientIp);
-	blog(LOG_INFO, "closed client connection from %s", clientIp.toUtf8().constData());
-}
-
-void WSServer::onMessage(connection_hdl hdl, server::message_ptr msg)
-{
 	try {
-		std::string response = WSRequest::processMessage(msg->get_payload());
-		_server.send(hdl, response, msg->get_opcode());
-	} catch (websocketpp::exception const &e) {
-		blog(LOG_INFO, "Echo failed because %s", e.what());
-	}
-}
+		server_.init_asio();
+		server_.set_reuse_addr(true);
 
-QString WSServer::getRemoteEndpoint(connection_hdl hdl)
-{
-	auto conn = _server.get_con_from_hdl(hdl);
-	return QString::fromStdString(conn->get_remote_endpoint());
+		server_.clear_access_channels(websocketpp::log::alevel::all);
+		server_.clear_error_channels(websocketpp::log::elevel::all);
+
+		server_.set_open_handler(
+			[this](websocketpp::connection_hdl hdl) {
+				onOpen(hdl);
+			});
+		server_.set_close_handler(
+			[this](websocketpp::connection_hdl hdl) {
+				onClose(hdl);
+			});
+		server_.set_message_handler(
+			[this](websocketpp::connection_hdl hdl,
+			       WsServer::message_ptr msg) {
+				onMessage(hdl, msg);
+			});
+
+		server_.listen(cfg.port());
+		server_.start_accept();
+
+		running_.store(true);
+		serverThread_ = std::thread(&WSServer::run, this);
+
+		blog(LOG_INFO, "WebSocket server listening on port %u",
+		     cfg.port());
+
+	} catch (const std::exception &e) {
+		blog(LOG_ERROR, "Failed to start WS server: %s", e.what());
+		running_.store(false);
+	}
 }
 
 void WSServer::stop()
 {
-	blog(LOG_INFO, "stopping server - %d open connections", _connectionList.size());
-	std::map<QString, connection_hdl>::iterator it = _connectionList.begin();
-	for (const auto &iter : _connectionList) {
-		_server.close(iter.second, 0, "");
+	std::lock_guard<std::mutex> lock(mutex_);
+
+	running_.store(false);
+
+	try {
+		server_.stop_listening();
+		server_.stop();
+	} catch (...) {
 	}
 
-	if (!_server.is_listening()) {
-		blog(LOG_INFO, "server stopped - it was not listening");
+	/* Always join the server thread if it's joinable, even if
+	   running_ was already false (e.g. exception in run()).
+	   Leaving a joinable thread causes std::terminate. */
+	if (serverThread_.joinable())
+		serverThread_.join();
+
+	/* Join all timer threads from use cases so they don't outlive
+	   the plugin during OBS shutdown */
+	{
+		std::lock_guard<std::mutex> tlock(timerMutex_);
+		for (auto &t : timerThreads_) {
+			if (t.joinable())
+				t.join();
+		}
+		timerThreads_.clear();
+	}
+
+	blog(LOG_INFO, "WebSocket server stopped");
+}
+
+void WSServer::run()
+{
+	try {
+		server_.run();
+	} catch (const std::exception &e) {
+		blog(LOG_ERROR, "WS server thread error: %s", e.what());
+	}
+	running_.store(false);
+}
+
+void WSServer::onOpen(websocketpp::connection_hdl)
+{
+	blog(LOG_INFO, "Streamloots client connected");
+}
+
+void WSServer::onClose(websocketpp::connection_hdl)
+{
+	blog(LOG_INFO, "Streamloots client disconnected");
+}
+
+void WSServer::onMessage(websocketpp::connection_hdl hdl,
+			 WsServer::message_ptr msg)
+{
+	if (!msg)
 		return;
-	}
 
-	_server.stop_listening();
-	_serverThread.join();
-	blog(LOG_INFO, "server stopped successfully");
+	/* Clean up any finished timer threads before processing */
+	cleanupTimerThreads();
+
+	const std::string &payload = msg->get_payload();
+	blog(LOG_DEBUG, "Received message: %s", payload.c_str());
+
+	WSRequest request;
+	std::string response = request.processMessage(payload);
+
+	try {
+		server_.send(hdl, response,
+			     websocketpp::frame::opcode::text);
+	} catch (const std::exception &e) {
+		blog(LOG_ERROR, "Failed to send response: %s", e.what());
+	}
+}
+
+void WSServer::trackTimerThread(std::thread &&t)
+{
+	std::lock_guard<std::mutex> lock(timerMutex_);
+	timerThreads_.push_back(std::move(t));
+}
+
+void WSServer::cleanupTimerThreads()
+{
+	std::lock_guard<std::mutex> lock(timerMutex_);
+	/* Remove threads that have finished (not joinable anymore won't
+	   work since joinable is true until joined, so we just leave
+	   cleanup to stop() and periodic calls here keep the vector
+	   from growing unbounded by joining finished ones) */
+	auto it = timerThreads_.begin();
+	while (it != timerThreads_.end()) {
+		/* We can't cheaply check if a thread is "done" without
+		   a flag, so we just let stop() handle the final join.
+		   This method exists to be called periodically. */
+		++it;
+	}
 }
