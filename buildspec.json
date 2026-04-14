@@ -8,6 +8,12 @@
     "windows": "com.streamloots.obs-streamloots"
   },
   "dependencies": {
+    "asio": {
+      "version": "1.38.0",
+      "repository": "https://github.com/chriskohlhoff/asio",
+      "branch": "master",
+      "hash": "03cf5f86a780dd102f1cdd3a59d1244d12143e46"
+    },
     "obs-studio": {
       "version": "31.1.1",
       "baseUrl": "https://github.com/obsproject/obs-studio/archive/refs/tags",
@@ -37,6 +43,12 @@
       "debugSymbols": {
         "windows-x64": "11b7be92cf66a273299b8f3515c07a5cfb61614b59a4e67f7fc5ecba5e2bdf21"
       }
+    },
+    "websocketpp": {
+      "version": "0.8.2",
+      "repository": "https://github.com/zaphoyd/websocketpp",
+      "branch": "master",
+      "hash": "56123c87598f8b1dd471be83ca841ceae07f95ba"
     }
   },
   "platformConfig": {
