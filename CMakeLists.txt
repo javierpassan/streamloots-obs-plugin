@@ -65,23 +65,35 @@ find_package(libobs REQUIRED)
 
 # Import and link asio
 
-set(ASIO_DIR CACHE FILEPATH "ASIO_DIR library")
-set(ASIO_INCLUDE_DIR "${ASIO_DIR}/asio/include")
+find_path(
+  ASIO_INCLUDE_DIR
+  NAMES asio.hpp
+  HINTS "${ASIO_DIR}" "${OBS_DEPS_DIR}/include"
+)
+
+if(NOT ASIO_INCLUDE_DIR)
+  message(FATAL_ERROR "Could not find asio.hpp from ASIO_DIR='${ASIO_DIR}'")
+endif()
 
 add_library(asio INTERFACE)
 target_compile_definitions(asio INTERFACE ASIO_STANDALONE)
 target_include_directories(asio SYSTEM INTERFACE "${ASIO_INCLUDE_DIR}")
-
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE asio)
 
 # Import and link Websocketspp
 
-set(WEBSOCKETPP_DIR CACHE FILEPATH "WEBSOCKETPP_DIR library")
-set(WEBSOCKETPP_INCLUDE_DIR "${WEBSOCKETPP_DIR}")
+find_path(
+  WEBSOCKETPP_INCLUDE_DIR
+  NAMES websocketpp/config/asio_no_tls.hpp
+  HINTS "${WEBSOCKETPP_DIR}" "${OBS_DEPS_DIR}/include"
+)
+
+if(NOT WEBSOCKETPP_INCLUDE_DIR)
+  message(FATAL_ERROR "Could not find websocketpp/config/asio_no_tls.hpp from WEBSOCKETPP_INCLUDE_DIR='${WEBSOCKETPP_INCLUDE_DIR}'")
+endif()
 
 add_library(Websockets INTERFACE)
 target_include_directories(Websockets SYSTEM INTERFACE "${WEBSOCKETPP_INCLUDE_DIR}")
-
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Websockets)
 
 # Import plugin
@@ -96,11 +108,8 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE ASIO_STANDALONE)
 target_include_directories(
   ${CMAKE_PROJECT_NAME} PRIVATE
   ${CMAKE_SOURCE_DIR}/src
-)
-target_include_directories(
-  ${CMAKE_PROJECT_NAME} SYSTEM PRIVATE
-  "${ASIO_INCLUDE_DIR}"
-  "${WEBSOCKETPP_INCLUDE_DIR}"
+  ${ASIO_INCLUDE_DIR}
+  ${WEBSOCKETPP_INCLUDE_DIR}
 )
 
 # Link libraries
