@@ -13,9 +13,9 @@ include(compilerconfig)
 include(defaults)
 include(helpers)
 
-find_package(libobs REQUIRED)
+add_library(${CMAKE_PROJECT_NAME} MODULE)
 
-add_library(
+target_sources(
   ${CMAKE_PROJECT_NAME} MODULE
   src/plugin-main.cpp
   src/Config.cpp
@@ -59,7 +59,11 @@ add_library(
   src/forms/settings-dialog.cpp
   src/forms/settings-dialog.h)
 
-# Import asio
+# Import OBS
+
+find_package(libobs REQUIRED)
+
+# Import and link asio
 
 set(ASIO_DIR CACHE FILEPATH "ASIO_DIR library")
 
@@ -69,7 +73,7 @@ target_include_directories(asio SYSTEM INTERFACE "${ASIO_DIR}/asio/include")
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE asio)
 
-# Import Websocketspp
+# Import and link Websocketspp
 
 set(CPPWS_DIR CACHE FILEPATH "CPPWS_DIR library")
 
