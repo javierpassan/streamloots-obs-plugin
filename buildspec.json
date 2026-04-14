@@ -10,9 +10,11 @@
   "dependencies": {
     "asio": {
       "version": "1.38.0",
-      "repository": "https://github.com/chriskohlhoff/asio",
-      "branch": "master",
-      "hash": "03cf5f86a780dd102f1cdd3a59d1244d12143e46"
+      "baseUrl": "https://github.com/chriskohlhoff/asio/archive/refs/tags",
+      "label": "ASIO sources",
+      "hashes": {
+        "windows-x64": "03cf5f86a780dd102f1cdd3a59d1244d12143e46"
+      }
     },
     "obs-studio": {
       "version": "31.1.1",
@@ -46,9 +48,11 @@
     },
     "websocketpp": {
       "version": "0.8.2",
-      "repository": "https://github.com/zaphoyd/websocketpp",
-      "branch": "master",
-      "hash": "56123c87598f8b1dd471be83ca841ceae07f95ba"
+      "baseUrl": "https://github.com/zaphoyd/websocketpp/archive/refs/tags",
+      "label": "WebSocket++ sources",
+      "hashes": {
+        "windows-x64": "56123c87598f8b1dd471be83ca841ceae07f95ba"
+      }
     }
   },
   "platformConfig": {
