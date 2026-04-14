@@ -16,7 +16,7 @@ include(helpers)
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 target_sources(
-  ${CMAKE_PROJECT_NAME} MODULE
+  ${CMAKE_PROJECT_NAME} PRIVATE
   src/plugin-main.cpp
   src/Config.cpp
   src/Config.hpp
