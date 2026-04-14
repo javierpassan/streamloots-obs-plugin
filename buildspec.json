@@ -13,7 +13,7 @@
       "baseUrl": "https://github.com/chriskohlhoff/asio/archive/refs/tags",
       "label": "ASIO sources",
       "hashes": {
-        "windows-x64": "03cf5f86a780dd102f1cdd3a59d1244d12143e46"
+        "windows-x64": "8b8dc8cb867672e98706ce6eba9989e4ec5361f298d487de9357718a0ae0c26b"
       }
     },
     "obs-studio": {
@@ -51,7 +51,7 @@
       "baseUrl": "https://github.com/zaphoyd/websocketpp/archive/refs/tags",
       "label": "WebSocket++ sources",
       "hashes": {
-        "windows-x64": "56123c87598f8b1dd471be83ca841ceae07f95ba"
+        "windows-x64": "0281b1d1278f01138805279fd2277901ae3c71b76e28364575356061098111c6"
       }
     }
   },

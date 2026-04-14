@@ -75,10 +75,10 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE asio)
 
 # Import and link Websocketspp
 
-set(CPPWS_DIR CACHE FILEPATH "CPPWS_DIR library")
+set(WEBSOCKETPP_DIR CACHE FILEPATH "WEBSOCKETPP_DIR library")
 
 add_library(Websockets INTERFACE)
-target_include_directories(Websockets SYSTEM INTERFACE "${CPPWS_DIR}")
+target_include_directories(Websockets SYSTEM INTERFACE "${WEBSOCKETPP_DIR}")
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE Websockets)
 

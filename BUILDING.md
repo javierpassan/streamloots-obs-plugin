@@ -70,7 +70,7 @@ mkdir build
 cd build
 cmake .. -G "Visual Studio 17 2022" -A x64 `
   -DASIO_DIR="C:\deps\asio" `
-  -DCPPWS_DIR="C:\deps\websocketpp"
+  -DWEBSOCKETPP_DIR="C:\deps\websocketpp"
 cmake --build . --config RelWithDebInfo
 ```
 
@@ -98,7 +98,7 @@ Install the **CMake Tools** extension, then create `.vscode/settings.json`:
 {
   "cmake.configureArgs": [
     "-DASIO_DIR=${workspaceFolder}/deps/asio",
-    "-DCPPWS_DIR=${workspaceFolder}/deps/websocketpp"
+    "-DWEBSOCKETPP_DIR=${workspaceFolder}/deps/websocketpp"
   ],
   "cmake.buildDirectory": "${workspaceFolder}/build"
 }
