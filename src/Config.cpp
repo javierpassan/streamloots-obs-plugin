@@ -11,6 +11,7 @@
 #include "plugin-macros.generated.h"
 
 #include <obs-frontend-api.h>
+#include <util/config-file.h>
 
 static constexpr const char *CONFIG_SECTION = "obs-streamloots";
 
@@ -22,7 +23,7 @@ Config &Config::instance()
 
 void Config::load()
 {
-	config_t *global = obs_frontend_get_global_config();
+	config_t *global = obs_frontend_get_app_config();
 	if (!global)
 		return;
 
@@ -42,7 +43,7 @@ void Config::load()
 
 void Config::save() const
 {
-	config_t *global = obs_frontend_get_global_config();
+	config_t *global = obs_frontend_get_app_config();
 	if (!global)
 		return;
 
