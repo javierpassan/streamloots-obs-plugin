@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "asio": {
-      "version": "1.38.0",
+      "version": "asio-1-38-0",
       "baseUrl": "https://github.com/chriskohlhoff/asio/archive/refs/tags",
       "label": "ASIO sources",
       "hashes": {
