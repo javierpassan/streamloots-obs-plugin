@@ -32,8 +32,7 @@ static void on_frontend_event(enum obs_frontend_event event, void * /*data*/)
 {
 	switch (event) {
 	case OBS_FRONTEND_EVENT_FINISHED_LOADING:
-		blog(LOG_INFO, "OBS finished loading – starting Streamloots WS server v%s",
-		     PLUGIN_VERSION);
+		blog(LOG_INFO, "OBS finished loading – starting Streamloots WS server v%s", PLUGIN_VERSION);
 		WSServer::instance().start();
 		break;
 
@@ -57,8 +56,7 @@ bool obs_module_load(void)
 	Config::instance().load();
 
 	obs_frontend_add_tools_menu_item(
-		"Streamloots", [](void *) { SettingsDialog::showDialog(); },
-		nullptr);
+		"Streamloots", [](void *) { SettingsDialog::showDialog(); }, nullptr);
 
 	/* Don't start the server here — wait for FINISHED_LOADING so all
 	   scenes and sources exist before we try to manipulate them */

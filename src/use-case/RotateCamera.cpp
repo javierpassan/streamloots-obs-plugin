@@ -28,10 +28,8 @@ bool RotateCamera::execute(obs_data_t *metadata)
 	if (!metadata)
 		return false;
 
-	std::string sourceName =
-		MetadataUtils::getString(metadata, "source_name");
-	float degrees =
-		static_cast<float>(MetadataUtils::getDouble(metadata, "degrees", 180.0));
+	std::string sourceName = MetadataUtils::getString(metadata, "source_name");
+	float degrees = static_cast<float>(MetadataUtils::getDouble(metadata, "degrees", 180.0));
 	int seconds = MetadataUtils::getInt(metadata, "seconds", 5);
 
 	if (sourceName.empty()) {
@@ -46,29 +44,24 @@ bool RotateCamera::execute(obs_data_t *metadata)
 	}
 
 	obs_scene_t *scene = obs_scene_from_source(sceneSrc);
-	obs_sceneitem_t *item =
-		SceneUtils::getSceneItemByName(scene, sourceName.c_str());
+	obs_sceneitem_t *item = SceneUtils::getSceneItemByName(scene, sourceName.c_str());
 
 	if (!item) {
 		obs_source_release(sceneSrc);
-		blog(LOG_WARNING,
-		     "RotateCamera: source '%s' not found in scene",
-		     sourceName.c_str());
+		blog(LOG_WARNING, "RotateCamera: source '%s' not found in scene", sourceName.c_str());
 		return false;
 	}
 
 	float originalRotation = obs_sceneitem_get_rot(item);
 
 	obs_sceneitem_set_rot(item, originalRotation + degrees);
-	blog(LOG_INFO,
-	     "RotateCamera: rotated '%s' by %.1f degrees for %d seconds",
-	     sourceName.c_str(), degrees, seconds);
+	blog(LOG_INFO, "RotateCamera: rotated '%s' by %.1f degrees for %d seconds", sourceName.c_str(), degrees,
+	     seconds);
 
 	obs_source_get_ref(sceneSrc);
 
 	std::thread timerThread([sourceName, seconds, sceneSrc, originalRotation]() {
-		std::this_thread::sleep_for(
-			std::chrono::seconds(seconds));
+		std::this_thread::sleep_for(std::chrono::seconds(seconds));
 
 		struct RestoreCtx {
 			std::string name;
@@ -76,22 +69,17 @@ bool RotateCamera::execute(obs_data_t *metadata)
 			float rotation;
 		};
 
-		auto *ctx =
-			new RestoreCtx{sourceName, sceneSrc, originalRotation};
+		auto *ctx = new RestoreCtx{sourceName, sceneSrc, originalRotation};
 
 		obs_queue_task(
 			OBS_TASK_UI,
 			[](void *param) {
 				auto *c = static_cast<RestoreCtx *>(param);
-				obs_scene_t *sc =
-					obs_scene_from_source(c->sceneSrc);
+				obs_scene_t *sc = obs_scene_from_source(c->sceneSrc);
 				if (sc) {
-					obs_sceneitem_t *si =
-						SceneUtils::getSceneItemByName(
-							sc, c->name.c_str());
+					obs_sceneitem_t *si = SceneUtils::getSceneItemByName(sc, c->name.c_str());
 					if (si)
-						obs_sceneitem_set_rot(
-							si, c->rotation);
+						obs_sceneitem_set_rot(si, c->rotation);
 				}
 				obs_source_release(c->sceneSrc);
 				delete c;

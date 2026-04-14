@@ -12,5 +12,5 @@
 
 class RotateCameraRequest : public RequestBase {
 public:
-    bool parse(obs_data_t *metadata) override;
+	bool parse(obs_data_t *metadata) override;
 };

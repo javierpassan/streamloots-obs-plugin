@@ -9,8 +9,7 @@
 #include "include/Response.hpp"
 #include <obs-data.h>
 
-std::string Response::make(const std::string &messageId,
-			   const std::string &requestType)
+std::string Response::make(const std::string &messageId, const std::string &requestType)
 {
 	obs_data_t *resp = obs_data_create();
 	obs_data_set_string(resp, "status", "ok");

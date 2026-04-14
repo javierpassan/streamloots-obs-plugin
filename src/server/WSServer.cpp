@@ -55,19 +55,10 @@ void WSServer::start()
 		server_.clear_access_channels(websocketpp::log::alevel::all);
 		server_.clear_error_channels(websocketpp::log::elevel::all);
 
-		server_.set_open_handler(
-			[this](websocketpp::connection_hdl hdl) {
-				onOpen(hdl);
-			});
-		server_.set_close_handler(
-			[this](websocketpp::connection_hdl hdl) {
-				onClose(hdl);
-			});
+		server_.set_open_handler([this](websocketpp::connection_hdl hdl) { onOpen(hdl); });
+		server_.set_close_handler([this](websocketpp::connection_hdl hdl) { onClose(hdl); });
 		server_.set_message_handler(
-			[this](websocketpp::connection_hdl hdl,
-			       WsServer::message_ptr msg) {
-				onMessage(hdl, msg);
-			});
+			[this](websocketpp::connection_hdl hdl, WsServer::message_ptr msg) { onMessage(hdl, msg); });
 
 		server_.listen(cfg.port());
 		server_.start_accept();
@@ -75,8 +66,7 @@ void WSServer::start()
 		running_.store(true);
 		serverThread_ = std::thread(&WSServer::run, this);
 
-		blog(LOG_INFO, "WebSocket server listening on port %u",
-		     cfg.port());
+		blog(LOG_INFO, "WebSocket server listening on port %u", cfg.port());
 
 	} catch (const std::exception &e) {
 		blog(LOG_ERROR, "Failed to start WS server: %s", e.what());
@@ -136,8 +126,7 @@ void WSServer::onClose(websocketpp::connection_hdl)
 	blog(LOG_INFO, "Streamloots client disconnected");
 }
 
-void WSServer::onMessage(websocketpp::connection_hdl hdl,
-			 WsServer::message_ptr msg)
+void WSServer::onMessage(websocketpp::connection_hdl hdl, WsServer::message_ptr msg)
 {
 	if (!msg)
 		return;
@@ -152,8 +141,7 @@ void WSServer::onMessage(websocketpp::connection_hdl hdl,
 	std::string response = request.processMessage(payload);
 
 	try {
-		server_.send(hdl, response,
-			     websocketpp::frame::opcode::text);
+		server_.send(hdl, response, websocketpp::frame::opcode::text);
 	} catch (const std::exception &e) {
 		blog(LOG_ERROR, "Failed to send response: %s", e.what());
 	}

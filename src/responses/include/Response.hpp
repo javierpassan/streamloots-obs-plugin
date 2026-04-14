@@ -12,6 +12,5 @@
 
 class Response {
 public:
-	static std::string make(const std::string &messageId,
-				const std::string &requestType);
+	static std::string make(const std::string &messageId, const std::string &requestType);
 };

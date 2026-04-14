@@ -31,8 +31,7 @@ std::string WSRequest::processMessage(const std::string &jsonPayload)
 	obs_data_t *data = obs_data_create_from_json(jsonPayload.c_str());
 	if (!data) {
 		blog(LOG_WARNING, "Invalid JSON received");
-		return ResponseError::make("", "invalid-json",
-					   "Could not parse JSON payload");
+		return ResponseError::make("", "invalid-json", "Could not parse JSON payload");
 	}
 
 	const char *requestType = obs_data_get_string(data, "request-type");
@@ -42,23 +41,18 @@ std::string WSRequest::processMessage(const std::string &jsonPayload)
 	std::string response;
 
 	if (!requestType || strlen(requestType) == 0) {
-		response = ResponseError::make(
-			messageId ? messageId : "", "missing-request-type",
-			"'request-type' field is required");
+		response = ResponseError::make(messageId ? messageId : "", "missing-request-type",
+					       "'request-type' field is required");
 	} else {
-		blog(LOG_INFO, "Processing request: type=%s id=%s",
-		     requestType, messageId ? messageId : "(none)");
+		blog(LOG_INFO, "Processing request: type=%s id=%s", requestType, messageId ? messageId : "(none)");
 
-		bool ok = UseCaseManager::instance().execute(
-			requestType, metadata);
+		bool ok = UseCaseManager::instance().execute(requestType, metadata);
 
 		if (ok) {
-			response = Response::make(
-				messageId ? messageId : "", requestType);
+			response = Response::make(messageId ? messageId : "", requestType);
 		} else {
-			response = ResponseError::make(
-				messageId ? messageId : "", "execution-failed",
-				"Use case execution failed");
+			response = ResponseError::make(messageId ? messageId : "", "execution-failed",
+						       "Use case execution failed");
 		}
 	}
 

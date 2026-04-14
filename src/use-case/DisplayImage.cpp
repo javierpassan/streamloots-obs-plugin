@@ -64,11 +64,9 @@ bool DisplayImage::execute(obs_data_t *metadata)
 		canvasHeight = static_cast<int>(ovi.base_height);
 	}
 
-	blog(LOG_INFO, "DisplayImage: url=%s seconds=%d canvas=%dx%d",
-	     url.c_str(), seconds, canvasWidth, canvasHeight);
+	blog(LOG_INFO, "DisplayImage: url=%s seconds=%d canvas=%dx%d", url.c_str(), seconds, canvasWidth, canvasHeight);
 
-	std::string sourceName =
-		STREAMLOOTS_SOURCE_PREFIX + std::to_string(sourceCounter++);
+	std::string sourceName = STREAMLOOTS_SOURCE_PREFIX + std::to_string(sourceCounter++);
 
 	obs_data_t *settings = obs_data_create();
 	obs_data_set_string(settings, "url", url.c_str());
@@ -90,8 +88,7 @@ bool DisplayImage::execute(obs_data_t *metadata)
 			    "object-fit: contain; }"
 			    "video::-webkit-media-controls { display: none !important; }");
 
-	obs_source_t *source = obs_source_create(
-		"browser_source", sourceName.c_str(), settings, nullptr);
+	obs_source_t *source = obs_source_create("browser_source", sourceName.c_str(), settings, nullptr);
 	obs_data_release(settings);
 
 	if (!source) {
@@ -99,14 +96,11 @@ bool DisplayImage::execute(obs_data_t *metadata)
 		return false;
 	}
 
-	float volume =
-		static_cast<float>(Config::instance().volume()) / 100.0f;
+	float volume = static_cast<float>(Config::instance().volume()) / 100.0f;
 	obs_source_set_volume(source, volume);
 
 	auto mode = Config::instance().monitoringMode();
-	obs_source_set_monitoring_type(
-		source,
-		static_cast<obs_monitoring_type>(static_cast<int>(mode)));
+	obs_source_set_monitoring_type(source, static_cast<obs_monitoring_type>(static_cast<int>(mode)));
 
 	obs_source_t *sceneSrc = obs_frontend_get_current_scene();
 	if (!sceneSrc) {
@@ -137,8 +131,8 @@ bool DisplayImage::execute(obs_data_t *metadata)
 	struct vec2 pos = {0.0f, 0.0f};
 	obs_sceneitem_set_pos(item, &pos);
 
-	blog(LOG_INFO, "DisplayImage: showing '%s' at %dx%d for %d seconds",
-	     sourceName.c_str(), canvasWidth, canvasHeight, seconds);
+	blog(LOG_INFO, "DisplayImage: showing '%s' at %dx%d for %d seconds", sourceName.c_str(), canvasWidth,
+	     canvasHeight, seconds);
 
 	/* Schedule removal: sleep on a tracked thread, then queue the actual
 	   scene manipulation back to the UI thread via obs_queue_task().
@@ -161,12 +155,9 @@ bool DisplayImage::execute(obs_data_t *metadata)
 			[](void *param) {
 				auto *c = static_cast<RemoveCtx *>(param);
 
-				obs_scene_t *sc =
-					obs_scene_from_source(c->sceneSrc);
+				obs_scene_t *sc = obs_scene_from_source(c->sceneSrc);
 				if (sc) {
-					obs_sceneitem_t *si =
-						SceneUtils::getSceneItemByName(
-							sc, c->name.c_str());
+					obs_sceneitem_t *si = SceneUtils::getSceneItemByName(sc, c->name.c_str());
 					if (si)
 						obs_sceneitem_remove(si);
 				}

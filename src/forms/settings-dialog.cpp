@@ -35,21 +35,16 @@ void SettingsDialog::showDialog()
 		return;
 	}
 
-	auto *mainWindow = static_cast<QWidget *>(
-		obs_frontend_get_main_window());
+	auto *mainWindow = static_cast<QWidget *>(obs_frontend_get_main_window());
 	dialogInstance = new SettingsDialog(mainWindow);
 	dialogInstance->setAttribute(Qt::WA_DeleteOnClose);
-	QObject::connect(dialogInstance, &QDialog::destroyed, []() {
-		dialogInstance = nullptr;
-	});
+	QObject::connect(dialogInstance, &QDialog::destroyed, []() { dialogInstance = nullptr; });
 	dialogInstance->show();
 }
 
-SettingsDialog::SettingsDialog(QWidget *parent)
-	: QDialog(parent)
+SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
 {
-	setWindowTitle(QString("Streamloots Settings (v%1)")
-			       .arg(PLUGIN_VERSION));
+	setWindowTitle(QString("Streamloots Settings (v%1)").arg(PLUGIN_VERSION));
 	setMinimumWidth(400);
 
 	auto *mainLayout = new QVBoxLayout(this);
@@ -97,36 +92,29 @@ SettingsDialog::SettingsDialog(QWidget *parent)
 
 	mainLayout->addWidget(audioGroup);
 
-	auto *buttons = new QDialogButtonBox(
-		QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+	auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
 	mainLayout->addWidget(buttons);
 
 	connect(volumeSlider_, &QSlider::valueChanged, this,
-		[this](int val) {
-			volumeLabel_->setText(QString("%1%").arg(val));
-		});
+		[this](int val) { volumeLabel_->setText(QString("%1%").arg(val)); });
 
 	connect(startBtn, &QPushButton::clicked, this, [this]() {
 		saveSettings();
 		WSServer::instance().start();
-		statusLabel_->setText(
-			WSServer::instance().isRunning()
-				? "<span style='color:green'>Running</span>"
-				: "<span style='color:red'>Failed</span>");
+		statusLabel_->setText(WSServer::instance().isRunning() ? "<span style='color:green'>Running</span>"
+								       : "<span style='color:red'>Failed</span>");
 	});
 
 	connect(stopBtn, &QPushButton::clicked, this, [this]() {
 		WSServer::instance().stop();
-		statusLabel_->setText(
-			"<span style='color:gray'>Stopped</span>");
+		statusLabel_->setText("<span style='color:gray'>Stopped</span>");
 	});
 
 	connect(buttons, &QDialogButtonBox::accepted, this, [this]() {
 		saveSettings();
 		accept();
 	});
-	connect(buttons, &QDialogButtonBox::rejected, this,
-		&QDialog::reject);
+	connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
 	loadSettings();
 }
@@ -137,14 +125,11 @@ void SettingsDialog::loadSettings()
 	portSpin_->setValue(cfg.port());
 	volumeSlider_->setValue(cfg.volume());
 	volumeLabel_->setText(QString("%1%").arg(cfg.volume()));
-	monitoringCombo_->setCurrentIndex(
-		static_cast<int>(cfg.monitoringMode()));
+	monitoringCombo_->setCurrentIndex(static_cast<int>(cfg.monitoringMode()));
 	autoStartCheck_->setChecked(cfg.autoStart());
 
-	statusLabel_->setText(
-		WSServer::instance().isRunning()
-			? "<span style='color:green'>Running</span>"
-			: "<span style='color:gray'>Stopped</span>");
+	statusLabel_->setText(WSServer::instance().isRunning() ? "<span style='color:green'>Running</span>"
+							       : "<span style='color:gray'>Stopped</span>");
 }
 
 void SettingsDialog::saveSettings()
@@ -152,8 +137,7 @@ void SettingsDialog::saveSettings()
 	auto &cfg = Config::instance();
 	cfg.setPort(static_cast<uint16_t>(portSpin_->value()));
 	cfg.setVolume(volumeSlider_->value());
-	cfg.setMonitoringMode(
-		static_cast<MonitoringMode>(monitoringCombo_->currentIndex()));
+	cfg.setMonitoringMode(static_cast<MonitoringMode>(monitoringCombo_->currentIndex()));
 	cfg.setAutoStart(autoStartCheck_->isChecked());
 	cfg.save();
 }

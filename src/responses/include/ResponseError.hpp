@@ -12,7 +12,6 @@
 
 class ResponseError {
 public:
-	static std::string make(const std::string &messageId,
-				const std::string &errorCode,
+	static std::string make(const std::string &messageId, const std::string &errorCode,
 				const std::string &errorMessage);
 };

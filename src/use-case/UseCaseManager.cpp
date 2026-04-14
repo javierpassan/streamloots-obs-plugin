@@ -23,8 +23,7 @@ UseCaseManager &UseCaseManager::instance()
 	return mgr;
 }
 
-bool UseCaseManager::execute(const std::string &requestType,
-			     obs_data_t *metadata)
+bool UseCaseManager::execute(const std::string &requestType, obs_data_t *metadata)
 {
 	if (requestType == RequestTypes::DISPLAY_IMAGE) {
 		return DisplayImage::execute(metadata);
@@ -42,8 +41,7 @@ bool UseCaseManager::execute(const std::string &requestType,
 		return RotateCamera::execute(metadata);
 
 	} else {
-		blog(LOG_WARNING, "Unknown request type: %s",
-		     requestType.c_str());
+		blog(LOG_WARNING, "Unknown request type: %s", requestType.c_str());
 		return false;
 	}
 }

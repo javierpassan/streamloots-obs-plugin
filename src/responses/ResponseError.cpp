@@ -9,8 +9,7 @@
 #include "include/ResponseError.hpp"
 #include <obs-data.h>
 
-std::string ResponseError::make(const std::string &messageId,
-				const std::string &errorCode,
+std::string ResponseError::make(const std::string &messageId, const std::string &errorCode,
 				const std::string &errorMessage)
 {
 	obs_data_t *resp = obs_data_create();

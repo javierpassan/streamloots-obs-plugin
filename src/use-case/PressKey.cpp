@@ -28,8 +28,7 @@ struct HotkeyFindData {
 	bool found;
 };
 
-static bool findHotkeyCallback(void *param, obs_hotkey_id id,
-				obs_hotkey_t *hotkey)
+static bool findHotkeyCallback(void *param, obs_hotkey_id id, obs_hotkey_t *hotkey)
 {
 	auto *fd = static_cast<HotkeyFindData *>(param);
 	const char *hkName = obs_hotkey_get_name(hotkey);
@@ -46,8 +45,7 @@ bool PressKey::execute(obs_data_t *metadata)
 	if (!metadata)
 		return false;
 
-	std::string hotkeyName =
-		MetadataUtils::getString(metadata, "hotkey_name");
+	std::string hotkeyName = MetadataUtils::getString(metadata, "hotkey_name");
 
 	if (hotkeyName.empty()) {
 		blog(LOG_WARNING, "PressKey: no hotkey_name provided");
@@ -58,8 +56,7 @@ bool PressKey::execute(obs_data_t *metadata)
 	obs_enum_hotkeys(findHotkeyCallback, &fd);
 
 	if (!fd.found) {
-		blog(LOG_WARNING, "PressKey: hotkey '%s' not found",
-		     hotkeyName.c_str());
+		blog(LOG_WARNING, "PressKey: hotkey '%s' not found", hotkeyName.c_str());
 		return false;
 	}
 
@@ -67,7 +64,6 @@ bool PressKey::execute(obs_data_t *metadata)
 	obs_hotkey_trigger_routed_callback(fd.id, true);
 	obs_hotkey_trigger_routed_callback(fd.id, false);
 
-	blog(LOG_INFO, "PressKey: triggered hotkey '%s'",
-	     hotkeyName.c_str());
+	blog(LOG_INFO, "PressKey: triggered hotkey '%s'", hotkeyName.c_str());
 	return true;
 }

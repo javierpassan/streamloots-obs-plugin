@@ -23,8 +23,7 @@ struct FindData {
 	obs_sceneitem_t *item;
 };
 
-inline bool findItemCallback(obs_scene_t * /*scene*/, obs_sceneitem_t *item,
-			     void *param)
+inline bool findItemCallback(obs_scene_t * /*scene*/, obs_sceneitem_t *item, void *param)
 {
 	auto *fd = static_cast<FindData *>(param);
 	obs_source_t *src = obs_sceneitem_get_source(item);
@@ -38,8 +37,7 @@ inline bool findItemCallback(obs_scene_t * /*scene*/, obs_sceneitem_t *item,
 	return true; // continue
 }
 
-inline obs_sceneitem_t *getSceneItemByName(obs_scene_t *scene,
-					   const char *name)
+inline obs_sceneitem_t *getSceneItemByName(obs_scene_t *scene, const char *name)
 {
 	if (!scene || !name)
 		return nullptr;

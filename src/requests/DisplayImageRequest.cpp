@@ -11,9 +11,9 @@
 
 bool DisplayImageRequest::parse(obs_data_t *metadata)
 {
-    if (!metadata)
-        return false;
-    url_ = MetadataUtils::getString(metadata, "url");
-    seconds_ = MetadataUtils::getInt(metadata, "seconds", 5);
-    return true;
+	if (!metadata)
+		return false;
+	url_ = MetadataUtils::getString(metadata, "url");
+	seconds_ = MetadataUtils::getInt(metadata, "seconds", 5);
+	return true;
 }

@@ -45,8 +45,7 @@ private:
 	WSServer &operator=(const WSServer &) = delete;
 
 	void run();
-	void onMessage(websocketpp::connection_hdl hdl,
-		       WsServer::message_ptr msg);
+	void onMessage(websocketpp::connection_hdl hdl, WsServer::message_ptr msg);
 	void onOpen(websocketpp::connection_hdl hdl);
 	void onClose(websocketpp::connection_hdl hdl);
 

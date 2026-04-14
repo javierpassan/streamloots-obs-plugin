@@ -24,8 +24,10 @@ public:
 	void setPort(uint16_t p)
 	{
 		/* Clamp to the range the Streamloots widget client scans */
-		if (p < MIN_PORT) p = MIN_PORT;
-		if (p > MAX_PORT) p = MAX_PORT;
+		if (p < MIN_PORT)
+			p = MIN_PORT;
+		if (p > MAX_PORT)
+			p = MAX_PORT;
 		port_ = p;
 	}
 

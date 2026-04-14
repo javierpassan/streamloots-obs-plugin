@@ -13,8 +13,7 @@
 
 namespace MetadataUtils {
 
-inline std::string getString(obs_data_t *meta, const char *key,
-			     const char *fallback = "")
+inline std::string getString(obs_data_t *meta, const char *key, const char *fallback = "")
 {
 	if (!meta)
 		return fallback;
@@ -29,8 +28,7 @@ inline int getInt(obs_data_t *meta, const char *key, int fallback = 0)
 	return static_cast<int>(obs_data_get_int(meta, key));
 }
 
-inline double getDouble(obs_data_t *meta, const char *key,
-			double fallback = 0.0)
+inline double getDouble(obs_data_t *meta, const char *key, double fallback = 0.0)
 {
 	if (!meta)
 		return fallback;

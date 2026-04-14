@@ -29,8 +29,7 @@ bool HideCamera::execute(obs_data_t *metadata)
 	if (!metadata)
 		return false;
 
-	std::string sourceName =
-		MetadataUtils::getString(metadata, "source_name");
+	std::string sourceName = MetadataUtils::getString(metadata, "source_name");
 	int seconds = MetadataUtils::getInt(metadata, "seconds", 5);
 
 	if (sourceName.empty()) {
@@ -45,25 +44,21 @@ bool HideCamera::execute(obs_data_t *metadata)
 	}
 
 	obs_scene_t *scene = obs_scene_from_source(sceneSrc);
-	obs_sceneitem_t *item =
-		SceneUtils::getSceneItemByName(scene, sourceName.c_str());
+	obs_sceneitem_t *item = SceneUtils::getSceneItemByName(scene, sourceName.c_str());
 
 	if (!item) {
 		obs_source_release(sceneSrc);
-		blog(LOG_WARNING, "HideCamera: source '%s' not found in scene",
-		     sourceName.c_str());
+		blog(LOG_WARNING, "HideCamera: source '%s' not found in scene", sourceName.c_str());
 		return false;
 	}
 
 	obs_sceneitem_set_visible(item, false);
-	blog(LOG_INFO, "HideCamera: hiding '%s' for %d seconds",
-	     sourceName.c_str(), seconds);
+	blog(LOG_INFO, "HideCamera: hiding '%s' for %d seconds", sourceName.c_str(), seconds);
 
 	obs_source_get_ref(sceneSrc);
 
 	std::thread timerThread([sourceName, seconds, sceneSrc]() {
-		std::this_thread::sleep_for(
-			std::chrono::seconds(seconds));
+		std::this_thread::sleep_for(std::chrono::seconds(seconds));
 
 		struct RestoreCtx {
 			std::string name;
@@ -76,15 +71,11 @@ bool HideCamera::execute(obs_data_t *metadata)
 			OBS_TASK_UI,
 			[](void *param) {
 				auto *c = static_cast<RestoreCtx *>(param);
-				obs_scene_t *sc =
-					obs_scene_from_source(c->sceneSrc);
+				obs_scene_t *sc = obs_scene_from_source(c->sceneSrc);
 				if (sc) {
-					obs_sceneitem_t *si =
-						SceneUtils::getSceneItemByName(
-							sc, c->name.c_str());
+					obs_sceneitem_t *si = SceneUtils::getSceneItemByName(sc, c->name.c_str());
 					if (si)
-						obs_sceneitem_set_visible(si,
-									  true);
+						obs_sceneitem_set_visible(si, true);
 				}
 				obs_source_release(c->sceneSrc);
 				delete c;
