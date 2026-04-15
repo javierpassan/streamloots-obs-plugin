@@ -26,7 +26,7 @@ For the vscode configuration you can use this settings:
     "cmake.configureArgs":[
         "-A x64",
     ],
-    "cmake.generator":"Visual Studio 16 2019",	
+    "cmake.generator":"Visual Studio 16 2019",
     "cmake.configureSettings": {
         "CMAKE_SYSTEM_VERSION": "10.0",
         "QTDIR": ".\\deps\\QT\\5.10.1\\msvc2017",
@@ -34,7 +34,7 @@ For the vscode configuration you can use this settings:
         "LIBOBS_INCLUDE_DIR": ".\\deps\\obs-studio\\libobs",
         "LIBOBS_LIB": ".\\deps\\obs-studio\\build64\\libobs\\RelWithDebInfo\\obs.lib",
         "OBS_FRONTEND_LIB": ".\\deps\\obs-studio\\build64\\UI\\obs-frontend-api\\RelWithDebInfo\\obs-frontend-api.lib",
-        "CPPWS_DIR": ".\\deps\\websocketpp",
+        "WEBSOCKETPP_DIR": ".\\deps\\websocketpp",
         "ASIO_DIR": ".\\deps\\asio"
     }
 

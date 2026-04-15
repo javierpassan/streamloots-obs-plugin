@@ -1,8 +1,14 @@
 !deps/.gitkeep
 .DS_Store
 .idea
+.vs/
 .vscode
+*.dll
+*.exp
 *.generated.*
+*.lib
+*.obj
+*.pdb
 **/.Brewfile.lock.json
 *~
 /build_*/
@@ -10,5 +16,9 @@
 /installer/Output/
 /plugin_x86/
 /release/
+build/
+CMakeCache.txt
+CMakeFiles/
 deps
 package
+src/plugin-macros.generated.h

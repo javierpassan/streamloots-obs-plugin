@@ -1,25 +1,25 @@
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+#include "include/ResponseError.hpp"
 #include <obs-data.h>
 
-#include "./include/ResponseError.hpp"
-
-using responses::ResponseError;
-using namespace std;
-
-ResponseError::ResponseError(string error) : Response("")
+std::string ResponseError::make(const std::string &messageId, const std::string &errorCode,
+				const std::string &errorMessage)
 {
-	this->error = error.c_str();
-	this->success = false;
-}
+	obs_data_t *resp = obs_data_create();
+	obs_data_set_string(resp, "status", "error");
+	obs_data_set_string(resp, "message-id", messageId.c_str());
+	obs_data_set_string(resp, "error", errorCode.c_str());
+	obs_data_set_string(resp, "error-message", errorMessage.c_str());
 
-ResponseError::ResponseError(string error, string messageId) : ResponseError(error)
-{
-	this->messageId = messageId.c_str();
-}
-
-string ResponseError::toJson()
-{
-	obs_data_t *response = Response::getBaseResponseData();
-	obs_data_set_string(response, "error", error);
-
-	return obs_data_get_json(response);
+	const char *json = obs_data_get_json(resp);
+	std::string result(json ? json : "{}");
+	obs_data_release(resp);
+	return result;
 }

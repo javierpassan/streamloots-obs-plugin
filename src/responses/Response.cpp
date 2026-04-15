@@ -1,27 +1,23 @@
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+#include "include/Response.hpp"
 #include <obs-data.h>
 
-#include "./include/Response.hpp"
-
-using responses::Response;
-using namespace std;
-
-Response::Response(string messageId)
+std::string Response::make(const std::string &messageId, const std::string &requestType)
 {
-	this->messageId = messageId.c_str();
-	this->success = true;
-}
+	obs_data_t *resp = obs_data_create();
+	obs_data_set_string(resp, "status", "ok");
+	obs_data_set_string(resp, "message-id", messageId.c_str());
+	obs_data_set_string(resp, "request-type", requestType.c_str());
 
-string Response::toJson()
-{
-	obs_data_t *response = getBaseResponseData();
-	return obs_data_get_json(response);
-}
-
-obs_data_t *Response::getBaseResponseData()
-{
-	obs_data_t *response = obs_data_create();
-	obs_data_set_string(response, "message-id", messageId);
-	obs_data_set_bool(response, "success", success);
-
-	return response;
+	const char *json = obs_data_get_json(resp);
+	std::string result(json ? json : "{}");
+	obs_data_release(resp);
+	return result;
 }

@@ -1,113 +1,69 @@
-#define WINVER 0x0500
-#include <windows.h>
-#include <winuser.h>
+/*
+ * obs-streamloots — Streamloots integration plugin for OBS Studio
+ * Copyright (C) 2023 Streamloots <engineering@streamloots.com>
+ * v3.0.0 update by SyerNide (2026) — compatibility rewrite for OBS 28+
+ *
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ *
+ * PressKey — triggers an OBS hotkey by name. The v2 plugin used Windows
+ * SendInput() to simulate raw keyboard presses, which was platform-specific
+ * and could trigger anti-cheat false positives. Replaced with the OBS
+ * hotkey API which is cross-platform and only affects OBS itself.
+ */
 
-#include "../requests/include/PressKeyRequest.hpp"
-#include "../responses/include/ResponseError.hpp"
-#include "../utils/timers.h"
-#include "./include/PressKey.hpp"
+#include <obs-module.h>
+#include "include/PressKey.hpp"
+#include "../plugin-macros.generated.h"
+#include "../requests/utils/metadata.hpp"
 
-using namespace requests;
-using namespace responses;
-using useCase::PressKey;
+#include <obs.h>
+#include <string>
 
-Response PressKey::invoke(obs_data_t *baseRequest)
+/*
+ * OBS hotkey trigger callback — finds a named hotkey and triggers it.
+ */
+struct HotkeyFindData {
+	const char *name;
+	obs_hotkey_id id;
+	bool found;
+};
+
+static bool findHotkeyCallback(void *param, obs_hotkey_id id, obs_hotkey_t *hotkey)
 {
-	PressKeyRequest request(baseRequest);
-	ShowFilter();
-	std::function<void()> cb = [&]() {
-		blog(LOG_INFO, "pressing enter");
-		ShowFilter();
-	};
-	setTimeOut(10 * 1000, cb);
-
-	return Response(request.messageId.toStdString());
-}
-
-void PressKey::pressKeyB(char mK)
-{
-	HKL kbl = GetKeyboardLayout(0);
-	INPUT ip;
-	ip.type = INPUT_KEYBOARD;
-	ip.ki.time = 0;
-	ip.ki.dwFlags = KEYEVENTF_UNICODE;
-	if ((int)mK < 65 && (int)mK > 90) //for lowercase
-	{
-		ip.ki.wScan = 0;
-		ip.ki.wVk = VkKeyScanEx(mK, kbl);
-	} else //for uppercase
-	{
-		ip.ki.wScan = mK;
-		ip.ki.wVk = 0;
+	auto *fd = static_cast<HotkeyFindData *>(param);
+	const char *hkName = obs_hotkey_get_name(hotkey);
+	if (hkName && strcmp(hkName, fd->name) == 0) {
+		fd->id = id;
+		fd->found = true;
+		return false; // stop
 	}
-	ip.ki.dwExtraInfo = 0;
-	SendInput(1, &ip, sizeof(INPUT));
+	return true; // continue
 }
 
-void PressKey::pressEnter()
+bool PressKey::execute(obs_data_t *metadata)
 {
-	blog(LOG_INFO, "pressing enter");
-	INPUT ip;
-	ip.type = INPUT_KEYBOARD;
-	ip.ki.time = 0;
-	ip.ki.dwFlags = KEYEVENTF_UNICODE;
-	ip.ki.wScan = VK_RETURN; //VK_RETURN is the code of Return key
-	ip.ki.wVk = 0;
+	if (!metadata)
+		return false;
 
-	ip.ki.dwExtraInfo = 0;
-	SendInput(1, &ip, sizeof(INPUT));
-}
+	std::string hotkeyName = MetadataUtils::getString(metadata, "hotkey_name");
 
-void PressKey::ShowDesktop()
-{
-	blog(LOG_INFO, "Sending W+D");
-	INPUT inputs[4] = {};
-	ZeroMemory(inputs, sizeof(inputs));
-	auto VK_D = 0x0044;
-
-	inputs[0].type = INPUT_KEYBOARD;
-	inputs[0].ki.wVk = VK_LWIN;
-
-	inputs[1].type = INPUT_KEYBOARD;
-	inputs[1].ki.wVk = VK_D;
-
-	inputs[2].type = INPUT_KEYBOARD;
-	inputs[2].ki.wVk = VK_D;
-	inputs[2].ki.dwFlags = KEYEVENTF_KEYUP;
-
-	inputs[3].type = INPUT_KEYBOARD;
-	inputs[3].ki.wVk = VK_LWIN;
-	inputs[3].ki.dwFlags = KEYEVENTF_KEYUP;
-
-	UINT uSent = SendInput(ARRAYSIZE(inputs), inputs, sizeof(INPUT));
-	if (uSent != ARRAYSIZE(inputs)) {
-		blog(LOG_ERROR, "SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
+	if (hotkeyName.empty()) {
+		blog(LOG_WARNING, "PressKey: no hotkey_name provided");
+		return false;
 	}
-}
 
-void PressKey::ShowFilter()
-{
-	blog(LOG_INFO, "Sending CTRL+P");
-	INPUT inputs[4] = {};
-	ZeroMemory(inputs, sizeof(inputs));
-	auto VK_P = 0x0050;
+	HotkeyFindData fd{hotkeyName.c_str(), OBS_INVALID_HOTKEY_ID, false};
+	obs_enum_hotkeys(findHotkeyCallback, &fd);
 
-	inputs[0].type = INPUT_KEYBOARD;
-	inputs[0].ki.wVk = VK_LCONTROL;
-
-	inputs[1].type = INPUT_KEYBOARD;
-	inputs[1].ki.wVk = VK_P;
-
-	inputs[2].type = INPUT_KEYBOARD;
-	inputs[2].ki.wVk = VK_P;
-	inputs[2].ki.dwFlags = KEYEVENTF_KEYUP;
-
-	inputs[3].type = INPUT_KEYBOARD;
-	inputs[3].ki.wVk = VK_LCONTROL;
-	inputs[3].ki.dwFlags = KEYEVENTF_KEYUP;
-
-	UINT uSent = SendInput(ARRAYSIZE(inputs), inputs, sizeof(INPUT));
-	if (uSent != ARRAYSIZE(inputs)) {
-		blog(LOG_ERROR, "SendInput failed: 0x%x\n", HRESULT_FROM_WIN32(GetLastError()));
+	if (!fd.found) {
+		blog(LOG_WARNING, "PressKey: hotkey '%s' not found", hotkeyName.c_str());
+		return false;
 	}
+
+	// Trigger the hotkey (press + release)
+	obs_hotkey_trigger_routed_callback(fd.id, true);
+	obs_hotkey_trigger_routed_callback(fd.id, false);
+
+	blog(LOG_INFO, "PressKey: triggered hotkey '%s'", hotkeyName.c_str());
+	return true;
 }
