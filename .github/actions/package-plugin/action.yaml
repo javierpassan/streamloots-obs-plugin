@@ -40,6 +40,10 @@ inputs:
     description: Create Windows or macOS installation package
     required: false
     default: 'false'
+  createInstaller:
+    description: 'Create InnoSetup installer (Windows only)'
+    required: false
+    default: 'false'
   workingDirectory:
     description: Working directory for packaging
     required: false
@@ -108,6 +112,10 @@ runs:
         $PackageArgs = @{
           Target = '${{ inputs.target }}'
           Configuration = '${{ inputs.config }}'
+        }
+
+        if ( '${{ inputs.createInstaller }}' -eq 'true' ) {
+          $PackageArgs += @{BuildInstaller = $true}
         }
 
         .github/scripts/Package-Windows.ps1 @PackageArgs
