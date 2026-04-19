@@ -54,12 +54,15 @@ function Package {
         ErrorAction = 'SilentlyContinue'
         Path = @(
             "${ProjectRoot}/release/${ProductName}-*-windows-*.zip"
+            "${ProjectRoot}/release/${ProductName}-*-windows-*.exe"
         )
     }
 
     Remove-Item @RemoveArgs
 
     if ( ( $BuildInstaller ) ) {
+        Install-BuildDependencies -WingetFile "${ScriptHome}/.Wingetfile"
+
         if ( $Target -eq 'x86+x64' ) {
             $IsccCandidates = Get-ChildItem -Recurse -Path '*.iss'
 
