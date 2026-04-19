@@ -6,8 +6,8 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  *
  * Settings dialog (Tools > Streamloots). Extended from v2 which only
- * had volume and monitoring controls. Added port config, auto-start
- * toggle, and server start/stop buttons for easier troubleshooting.
+ * had volume and monitoring controls. Added port config and auto-start
+ * toggle for server behavior.
  */
 
 #include <obs-module.h>
@@ -58,18 +58,20 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
 	portSpin_->setRange(Config::MIN_PORT, Config::MAX_PORT);
 	serverForm->addRow("Port:", portSpin_);
 
-	autoStartCheck_ = new QCheckBox("Auto-start when OBS loads", this);
-	serverForm->addRow("", autoStartCheck_);
+	// autoStartCheck_ = new QCheckBox("Auto-start when OBS loads", this);
+	// serverForm->addRow("", autoStartCheck_);
 
-	statusLabel_ = new QLabel(this);
-	serverForm->addRow("Status:", statusLabel_);
+	// statusLabel_ = new QLabel(this);
+	// serverForm->addRow("Status:", statusLabel_);
 
-	auto *serverBtnLayout = new QHBoxLayout();
-	auto *startBtn = new QPushButton("Start Server", this);
-	auto *stopBtn = new QPushButton("Stop Server", this);
-	serverBtnLayout->addWidget(startBtn);
-	serverBtnLayout->addWidget(stopBtn);
-	serverForm->addRow("", serverBtnLayout);
+	// Start/Stop controls intentionally hidden from the settings UI.
+	// Keep the original wiring here for quick restore if needed.
+	// auto *serverBtnLayout = new QHBoxLayout();
+	// auto *startBtn = new QPushButton("Start Server", this);
+	// auto *stopBtn = new QPushButton("Stop Server", this);
+	// serverBtnLayout->addWidget(startBtn);
+	// serverBtnLayout->addWidget(stopBtn);
+	// serverForm->addRow("", serverBtnLayout);
 
 	mainLayout->addWidget(serverGroup);
 
@@ -98,17 +100,18 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent)
 	connect(volumeSlider_, &QSlider::valueChanged, this,
 		[this](int val) { volumeLabel_->setText(QString("%1%").arg(val)); });
 
-	connect(startBtn, &QPushButton::clicked, this, [this]() {
-		saveSettings();
-		WSServer::instance().start();
-		statusLabel_->setText(WSServer::instance().isRunning() ? "<span style='color:green'>Running</span>"
-								       : "<span style='color:red'>Failed</span>");
-	});
+	// Hidden manual controls; server lifecycle is managed elsewhere.
+	// connect(startBtn, &QPushButton::clicked, this, [this]() {
+	// 	saveSettings();
+	// 	WSServer::instance().start();
+	// 	statusLabel_->setText(WSServer::instance().isRunning() ? "<span style='color:green'>Running</span>"
+	// 							       : "<span style='color:red'>Failed</span>");
+	// });
 
-	connect(stopBtn, &QPushButton::clicked, this, [this]() {
-		WSServer::instance().stop();
-		statusLabel_->setText("<span style='color:gray'>Stopped</span>");
-	});
+	// connect(stopBtn, &QPushButton::clicked, this, [this]() {
+	// 	WSServer::instance().stop();
+	// 	statusLabel_->setText("<span style='color:gray'>Stopped</span>");
+	// });
 
 	connect(buttons, &QDialogButtonBox::accepted, this, [this]() {
 		saveSettings();
@@ -126,10 +129,10 @@ void SettingsDialog::loadSettings()
 	volumeSlider_->setValue(cfg.volume());
 	volumeLabel_->setText(QString("%1%").arg(cfg.volume()));
 	monitoringCombo_->setCurrentIndex(static_cast<int>(cfg.monitoringMode()));
-	autoStartCheck_->setChecked(cfg.autoStart());
+	// autoStartCheck_->setChecked(cfg.autoStart());
 
-	statusLabel_->setText(WSServer::instance().isRunning() ? "<span style='color:green'>Running</span>"
-							       : "<span style='color:gray'>Stopped</span>");
+	// statusLabel_->setText(WSServer::instance().isRunning() ? "<span style='color:green'>Running</span>"
+	// 						       : "<span style='color:gray'>Stopped</span>");
 }
 
 void SettingsDialog::saveSettings()
@@ -138,6 +141,6 @@ void SettingsDialog::saveSettings()
 	cfg.setPort(static_cast<uint16_t>(portSpin_->value()));
 	cfg.setVolume(volumeSlider_->value());
 	cfg.setMonitoringMode(static_cast<MonitoringMode>(monitoringCombo_->currentIndex()));
-	cfg.setAutoStart(autoStartCheck_->isChecked());
+	//cfg.setAutoStart(autoStartCheck_->isChecked());
 	cfg.save();
 }
